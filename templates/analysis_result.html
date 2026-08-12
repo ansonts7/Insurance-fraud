@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Report · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Claim #{{ '%05d' % claim_id }}</p>
+                <h1 class="title">AI Image Analysis Report</h1>
+                <p class="subtitle">Damage assessment for image: {{ filename }}</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-secondary" href="/claim_details/{{ claim_id }}">← Back to Claim</a>
+            </div>
+        </header>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 32px;">
+
+            <!-- Left: Images -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                <section class="card">
+                    <h2 class="section-title">Original Image</h2>
+                    <p class="section-subtitle">Uploaded by the claimant</p>
+                    <img src="/download_image/{{ filename }}" alt="Original vehicle image"
+                        style="width: 100%; border-radius: 8px; margin-top: 16px; border: 1px solid var(--border);">
+                </section>
+            </div>
+
+            <!-- Right: Results -->
+            <div>
+                <section class="card hero" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+                        <div>
+                            <h2 class="section-title" style="margin-bottom: 4px;">Primary Damage</h2>
+                            <p class="section-subtitle">Detected via fine-tuned CNN</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="badge danger" style="font-size: 1.5rem; padding: 12px 24px;">
+                                {{ result.damage_icon }} {{ result.damage_type }}
+                            </span>
+                            {% if result.confidence %}
+                            <div style="margin-top: 12px; color: var(--success); font-weight: 600; font-size: 1.1rem;">
+                                {{ result.confidence }}% Confidence
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card" style="margin-bottom: 24px;">
+                    <h2 class="section-title">Damage Metrics</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px;">
+                        <div>
+                            <label
+                                style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Severity
+                                Level</label>
+                            <strong style="font-size: 1.4em;">{{ result.severity_level }}</strong>
+                        </div>
+                        <div>
+                            <label
+                                style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Severity
+                                Score</label>
+                            <strong
+                                style="font-size: 1.4em; color: {% if result.severity_score >= 4.0 %}var(--danger){% elif result.severity_score >= 2.5 %}#fbbf24{% else %}var(--success){% endif %}">
+                                {{ result.severity_score }}
+                            </strong>
+                            <span style="color: var(--muted); font-size: 0.9em;">/ 5.0</span>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <label
+                                style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Estimated
+                                Repair Cost</label>
+                            <strong style="font-size: 2em; color: #60a5fa;">₹{{ '{:,.2f}'.format(result.repair_cost)
+                                }}</strong>
+                        </div>
+                    </div>
+                </section>
+
+                {% if result.recommendations %}
+                <section class="card">
+                    <h2 class="section-title">AI Recommendations</h2>
+                    <div style="margin-top: 16px;">
+                        {% for rec in result.recommendations %}
+                        <div
+                            style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: #c7d2fe; padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="flex-shrink: 0;">💡</span>
+                            <span>{{ rec.replace('🚗 ', '').replace('💰 ', '').replace('⚠️ ', '').replace('📅 ',
+                                '').replace('✅ ', '').replace('🪟 ', '').replace('🛞 ', '') }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

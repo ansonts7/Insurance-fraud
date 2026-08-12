@@ -1,0 +1,64 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+
+# === Virtual Environment ===
+venv/
+env/
+.env/
+.venv/
+
+# === macOS ===
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# === Training Data ===
+data/
+
+# === Large ML Models (excluded - too large for GitHub) ===
+models/
+
+# === Databases ===
+*.db
+*.sqlite
+*.sqlite3
+
+# === User Uploads ===
+uploads/
+
+# === YOLO / ML run artifacts ===
+runs/
+
+# === Training & Evaluation Scripts (not needed to run the website) ===
+train_model.py
+eval_fraud.py
+get_accuracies.py
+generate_architecture.py
+generate_burndown.py
+generate_burndown_custom.py
+generate_confusion_matrices.py
+generate_custom_arch.py
+generate_exact_arch.py
+generate_flowcharts.py
+generate_graphs.py
+generate_loss_graphs.py
+generate_metrics_table.py
+generate_process_flow.py
+generate_system_arch.py
+
+# === Root-level duplicate HTML (template version is the correct one) ===
+linkedin_project.html
+
+# === IDE / Editor ===
+.vscode/
+.idea/
+*.swp
+*.swo

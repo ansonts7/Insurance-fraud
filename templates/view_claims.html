@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submitted Claims · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Claims Queue</p>
+                <h1 class="title">Submitted Insurance Claims</h1>
+                <p class="subtitle">Review pending cases, run fraud predictions, and open explanation reports.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-secondary" href="/admin">Back to dashboard</a>
+                <a class="btn btn-ghost" href="/logout">Logout</a>
+            </div>
+        </header>
+
+        {% if claims %}
+        <section class="card">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Prediction</th>
+                            <th>Probability</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in claims %}
+                        <tr>
+                            <td>#{{ c[0] }}</td>
+                            <td>{{ c[1] }}</td>
+                            <td>
+                                {% if c[2] == 'Pending' %}
+                                <span class="badge warning">Pending</span>
+                                {% else %}
+                                <span class="badge success">Reviewed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if c[3] %}
+                                {% if c[3] == 'Fraud' %}
+                                <span class="badge danger">Fraud</span>
+                                {% else %}
+                                <span class="badge success">Genuine</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="badge">Not scored</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if c[4] %}
+                                {{ c[4] | round(1) }}%
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-row">
+                                    <a class="btn btn-ghost" href="/predict/{{ c[0] }}">Predict</a>
+                                    <a class="btn btn-secondary" href="/explain/{{ c[0] }}">Explain</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% else %}
+        <section class="card">
+            <h2 class="section-title">No claims yet</h2>
+            <p class="section-subtitle">Submissions will appear here as soon as users file claims.</p>
+        </section>
+        {% endif %}
+    </div>
+</body>
+
+</html>

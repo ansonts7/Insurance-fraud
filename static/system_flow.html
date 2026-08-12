@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1000px;
+            height: 900px;
+            background-color: #f8fafc;
+            font-family: 'Montserrat', sans-serif;
+            position: relative;
+        }
+        
+        .title-header {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            padding-top: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .node {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        .box {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            width: 180px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 2px solid #e2e8f0;
+        }
+        
+        .highlight {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .ai {
+            border-color: #8b5cf6;
+            background-color: #f5f3ff;
+        }
+        
+        .decision {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+        }
+        
+        .title {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 15px;
+            line-height: 1.3;
+            margin-bottom: 8px;
+        }
+        
+        .sub {
+            font-weight: 500;
+            color: #475569;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+        
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        path, line {
+            fill: none;
+            stroke: #64748b;
+            stroke-width: 2.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="title-header">Insurance Claim Processing Flow</div>
+
+    <svg>
+        <defs>
+            <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse">
+                <path d="M 0 0 L 6 3 L 0 6 z" fill="#64748b" stroke="none"/>
+            </marker>
+        </defs>
+
+        <!-- Down arrows -->
+        <path d="M 250 200 L 250 250" marker-end="url(#arrow)" />
+        <path d="M 250 350 L 250 400" marker-end="url(#arrow)" />
+        
+        <!-- Cross paths -->
+        <path d="M 250 500 L 250 580 L 410 580" marker-end="url(#arrow)" />
+        
+        <!-- Admin flow -->
+        <path d="M 750 200 L 750 250" marker-end="url(#arrow)" />
+        
+        <!-- Splitting to AI -->
+        <path d="M 750 330 L 750 370" />
+        <path d="M 580 370 L 920 370" />
+        <path d="M 580 370 L 580 410" marker-end="url(#arrow)" />
+        <path d="M 920 370 L 920 410" marker-end="url(#arrow)" />
+        <path d="M 750 370 L 750 410" marker-end="url(#arrow)" />
+        
+        <!-- Merging AI results to DB Review -->
+        <path d="M 580 520 L 580 580 L 590 580" marker-end="url(#arrow)" />
+        <path d="M 920 520 L 920 580 L 910 580" marker-end="url(#arrow)" />
+        <path d="M 750 490 L 750 540" marker-end="url(#arrow)" />
+
+        <!-- Admin Decision to Setttlement -->
+        <path d="M 750 630 L 750 690" marker-end="url(#arrow)" />
+        <path d="M 750 790 L 750 840" marker-end="url(#arrow)" />
+
+    </svg>
+
+    <!-- Node 1: User Auth -->
+    <div class="node box" style="left: 250px; top: 150px;">
+        <div class="icon">👤</div>
+        <div class="title">User Authentication</div>
+        <div class="sub">Register, Login &<br>Save Bank Details</div>
+    </div>
+
+    <!-- Node 2: Claim Init -->
+    <div class="node box highlight" style="left: 250px; top: 300px;">
+        <div class="icon">📝</div>
+        <div class="title">Claim Submission</div>
+        <div class="sub">Fill Incident Details &<br>Upload Vehicle Images</div>
+    </div>
+
+    <!-- Node 3: Database -->
+    <div class="node box" style="left: 250px; top: 450px;">
+        <div class="icon">🗄️</div>
+        <div class="title">SQLite Database</div>
+        <div class="sub">Stores "Pending" Claims</div>
+    </div>
+
+    <!-- Node 4: Admin Queue -->
+    <div class="node box" style="left: 750px; top: 150px;">
+        <div class="icon">🛡️</div>
+        <div class="title">Admin Login</div>
+        <div class="sub">Access Claims Queue</div>
+    </div>
+    
+    <!-- Node 5: Init AI -->
+    <div class="node box highlight" style="left: 750px; top: 290px;">
+        <div class="icon">🔍</div>
+        <div class="title">Trigger AI Analysis</div>
+        <div class="sub">Admin requests claim prediction</div>
+    </div>
+
+    <!-- Node 6: XGBoost -->
+    <div class="node box ai" style="left: 580px; top: 460px;">
+        <div class="icon">💻</div>
+        <div class="title">Tabular ML Model</div>
+        <div class="sub">XGBoost Fraud Probability &<br>Repair Cost Estimator</div>
+    </div>
+    
+    <!-- Node 7: SHAP -->
+    <div class="node box ai" style="left: 750px; top: 450px; padding: 12px 20px;">
+        <div class="title">SHAP Explainer</div>
+        <div class="sub">Mathematical Evidence</div>
+    </div>
+
+    <!-- Node 8: CNN -->
+    <div class="node box ai" style="left: 920px; top: 460px;">
+        <div class="icon">📷</div>
+        <div class="title">Computer Vision</div>
+        <div class="sub">CNN Damage Type &<br>Severity Classifier</div>
+    </div>
+
+    <!-- Node 9: Manual Decision -->
+    <div class="node box decision" style="left: 750px; top: 580px;">
+        <div class="icon">⚖️</div>
+        <div class="title">Admin Verification</div>
+        <div class="sub">Review Evidence &<br>Approve / Reject Claim</div>
+    </div>
+
+    <!-- Node 10: Settlement -->
+    <div class="node box" style="left: 750px; top: 740px;">
+        <div class="icon">💰</div>
+        <div class="title">Payout Processing</div>
+        <div class="sub">Calculate Final Amount based on<br>User Req vs Estimated Cost</div>
+    </div>
+    
+    <!-- Node 11: Transfer -->
+    <div class="node box" style="left: 750px; top: 860px; padding: 10px 20px; width: 220px;">
+        <div class="title">Secure Transfer & Notify</div>
+    </div>
+
+</body>
+</html>

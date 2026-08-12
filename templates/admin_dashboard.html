@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Admin Console</p>
+                <h1 class="title">Fraud Review Command Center</h1>
+                <p class="subtitle">Monitor submissions, prioritize reviews, and surface explainability in minutes.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn" href="/claims">View claims</a>
+                <a class="btn btn-secondary" href="/logout">Logout</a>
+            </div>
+        </header>
+
+        <section class="card hero">
+            <h2 class="section-title">Review workflow</h2>
+            <p class="section-subtitle">Open the claims queue to score fraud risk and generate SHAP explanations for
+                every submission.</p>
+            <div class="kpi-grid">
+                <div class="kpi">
+                    <div class="label">Queue status</div>
+                    <div class="value">Live</div>
+                </div>
+                <div class="kpi">
+                    <div class="label">Model threshold</div>
+                    <div class="value">0.20</div>
+                </div>
+                <div class="kpi">
+                    <div class="label">Explainability</div>
+                    <div class="value">Enabled</div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+
+</html>

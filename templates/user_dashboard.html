@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Claim · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+    <script>
+        function validateForm() {
+            const nums = document.querySelectorAll("input[type=number]");
+            for (let n of nums) {
+                if (n.value === "" || Number(n.value) < 0) {
+                    alert("Please enter valid numeric values");
+                    return false;
+                }
+            }
+            const hour = document.querySelector("input[name='incident_hour_of_the_day']");
+            if (hour && (hour.value < 0 || hour.value > 23)) {
+                alert("Incident hour must be between 0 and 23");
+                return false;
+            }
+            return true;
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Claim Intake</p>
+                <h1 class="title">Insurance Claim Submission</h1>
+                <p class="subtitle">Provide the incident, policy, and vehicle details needed to assess fraud risk.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-secondary" href="/my_claims">My Claims</a>
+                <a class="btn btn-secondary" href="/service_centers">🗺️ Find Service Center</a>
+                <a class="btn btn-secondary" href="/logout">Logout</a>
+            </div>
+        </header>
+
+        <form method="post" enctype="multipart/form-data" onsubmit="return validateForm();">
+            <section class="card">
+                <h2 class="section-title">Customer &amp; policy details</h2>
+                <p class="section-subtitle">Core policy information and insured profile.</p>
+                <div class="form-grid two">
+                    <div class="field">
+                        <label for="months_as_customer">Months as customer</label>
+                        <input id="months_as_customer" type="number" name="months_as_customer" min="0" required>
+                    </div>
+                    <div class="field">
+                        <label for="age">Age</label>
+                        <input id="age" type="number" name="age" min="18" required>
+                    </div>
+                    <div class="field">
+                        <label for="policy_deductable">Policy deductible</label>
+                        <input id="policy_deductable" type="number" name="policy_deductable" min="0" required>
+                    </div>
+                    <div class="field">
+                        <label for="policy_annual_premium">Policy annual premium</label>
+                        <input id="policy_annual_premium" type="number" step="0.01" name="policy_annual_premium" min="0"
+                            required>
+                    </div>
+                    <div class="field">
+                        <label for="umbrella_limit">Umbrella limit</label>
+                        <input id="umbrella_limit" type="number" name="umbrella_limit" min="0" required>
+                    </div>
+                    <div class="field">
+                        <label for="insured_sex">Insured sex</label>
+                        <select id="insured_sex" name="insured_sex" required>
+                            <option value="MALE">Male</option>
+                            <option value="FEMALE">Female</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="insured_education_level">Education level</label>
+                        <select id="insured_education_level" name="insured_education_level" required>
+                            {% for v in dropdowns.insured_education_level %}
+                            <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 class="section-title">Incident details</h2>
+                <p class="section-subtitle">Capture where, when, and how the incident occurred.</p>
+                <div class="form-grid two">
+                    <div class="field">
+                        <label for="incident_type">Incident type</label>
+                        <select id="incident_type" name="incident_type" required>
+                            {% for v in dropdowns.incident_type %}
+                            <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="collision_type">Collision type</label>
+                        <select id="collision_type" name="collision_type" required>
+                            {% for v in dropdowns.collision_type %}
+                            <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="incident_severity">Incident severity</label>
+                        <select id="incident_severity" name="incident_severity" required>
+                            {% for v in dropdowns.incident_severity %}
+                            <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="incident_hour_of_the_day">Incident hour (0–23)</label>
+                        <input id="incident_hour_of_the_day" type="number" name="incident_hour_of_the_day" min="0"
+                            max="23" required>
+                    </div>
+                    <div class="field">
+                        <label for="number_of_vehicles_involved">Vehicles involved</label>
+                        <input id="number_of_vehicles_involved" type="number" name="number_of_vehicles_involved" min="1"
+                            required>
+                    </div>
+                    <div class="field">
+                        <label for="property_damage">Property damage</label>
+                        <select id="property_damage" name="property_damage" required>
+                            <option value="YES">YES</option>
+                            <option value="NO">NO</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="police_report_available">Police report available</label>
+                        <select id="police_report_available" name="police_report_available" required>
+                            <option value="YES">YES</option>
+                            <option value="NO">NO</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="authorities_contacted">Authorities contacted</label>
+                        <select id="authorities_contacted" name="authorities_contacted" required>
+                            {% for v in dropdowns.authorities_contacted %}
+                            <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 class="section-title">Claim &amp; vehicle details</h2>
+                <p class="section-subtitle">Financial impact and vehicle specifics.</p>
+                <div class="form-grid two">
+                    <div class="field">
+                        <label for="total_claim_amount">Total claim amount</label>
+                        <input id="total_claim_amount" type="number" name="total_claim_amount" min="0" required>
+                    </div>
+                    <div class="field">
+                        <label for="auto_make">Vehicle make</label>
+                        <select id="auto_make" name="auto_make" required>
+                            {% for v in dropdowns.auto_make %}
+                            <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="auto_model">Vehicle model</label>
+                        <select id="auto_model" name="auto_model" required>
+                            {% for v in dropdowns.auto_model %}
+                            <option value="{{ v }}">{{ v }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="auto_year">Vehicle year</label>
+                        <input id="auto_year" type="number" name="auto_year" min="1980" required>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 class="section-title">Vehicle Images (Optional)</h2>
+                <p class="section-subtitle">Upload photos of the vehicle damage to provide more context.</p>
+                <div class="field" style="margin-top: 20px;">
+                    <label for="vehicle_images"
+                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; border: 2px dashed rgba(99, 102, 241, 0.4); border-radius: 16px; background: rgba(99, 102, 241, 0.05); cursor: pointer; transition: all 0.3s ease;">
+                        <span style="font-size: 2rem; margin-bottom: 12px;">📸</span>
+                        <span style="font-weight: 600; color: var(--text); margin-bottom: 4px;">Click to select
+                            images</span>
+                        <span style="font-size: 0.85rem; color: var(--muted);">JPEG, PNG formats up to 5MB</span>
+                        <input id="vehicle_images" type="file" name="vehicle_images"
+                            accept="image/png, image/jpeg, image/jpg" multiple style="display: none;">
+                    </label>
+                    <div id="file-list" style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                </div>
+            </section>
+
+            <script>
+                let selectedFiles = [];
+                const fileInput = document.getElementById('vehicle_images');
+                const fileListContainer = document.getElementById('file-list');
+
+                fileInput.addEventListener('change', function (e) {
+                    Array.from(e.target.files).forEach(file => {
+                        // Prevent duplicates based on name and size
+                        const isDuplicate = selectedFiles.some(f => f.name === file.name && f.size === file.size);
+                        if (!isDuplicate) {
+                            selectedFiles.push(file);
+                        }
+                    });
+
+                    updateFileInputAndUI();
+                });
+
+                function updateFileInputAndUI() {
+                    const dt = new DataTransfer();
+                    selectedFiles.forEach(file => dt.items.add(file));
+                    fileInput.files = dt.files;
+
+                    fileListContainer.innerHTML = '';
+                    selectedFiles.forEach((file, index) => {
+                        const tag = document.createElement('span');
+                        tag.style.cssText = 'padding: 6px 14px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 20px; font-size: 0.85rem; color: var(--text); display: inline-flex; align-items: center; gap: 8px;';
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.style.cssText = 'background: none; border: none; color: #ef4444; cursor: pointer; padding: 0; font-size: 1.2rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center;';
+                        removeBtn.innerHTML = '&times;';
+                        removeBtn.onclick = function () { removeFile(index); };
+
+                        tag.textContent = `📎 ${file.name} `;
+                        tag.appendChild(removeBtn);
+                        fileListContainer.appendChild(tag);
+                    });
+                }
+
+                function removeFile(index) {
+                    selectedFiles.splice(index, 1);
+                    updateFileInputAndUI();
+                }
+            </script>
+
+            <section class="card">
+                <h2 class="section-title">Submit for review</h2>
+                <p class="section-subtitle">The submission will be queued for fraud scoring and admin review.</p>
+                <div class="action-row">
+                    <button type="submit">Submit claim</button>
+                    <a class="btn btn-secondary" href="/logout">Save &amp; exit</a>
+                </div>
+            </section>
+        </form>
+    </div>
+
+    </div>
+</body>
+
+</html>

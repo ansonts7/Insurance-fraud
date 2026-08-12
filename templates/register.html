@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Account Setup</p>
+                <h1 class="title">Create your access</h1>
+                <p class="subtitle">Provision a user or admin profile to access claims workflows.</p>
+            </div>
+            <a class="btn btn-ghost" href="/">Back to login</a>
+        </header>
+
+        <section class="card">
+            {% if error %}
+            <div class="alert alert-error">
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+            <form class="form-grid" method="post">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input id="username" name="username" type="text" autocomplete="username" required>
+                    <small class="helper">3-30 characters, letters, numbers, underscore, or hyphen</small>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="new-password" required>
+                    <small class="helper">Min 8 characters with uppercase, lowercase, digit, and special
+                        character</small>
+                </div>
+                <div class="field">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password"
+                        required>
+                </div>
+                <div class="field">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="user">Claims User</option>
+                        <option value="admin">Admin Reviewer</option>
+                    </select>
+                </div>
+                <div class="action-row">
+                    <button type="submit">Create account</button>
+                    <a class="btn btn-secondary" href="/">Cancel</a>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    </div>
+</body>
+
+</html>

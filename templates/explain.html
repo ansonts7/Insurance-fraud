@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAI Explanation · Claim #{{ '%05d' % claim_id }} · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+    <style>
+        /* ── Gauge ───────────────────────────────────────────── */
+        .gauge-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .gauge-svg {
+            filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.35));
+        }
+
+        .gauge-track {
+            stroke: rgba(255, 255, 255, 0.06);
+            fill: none;
+            stroke-linecap: round;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-linecap: round;
+            stroke-dasharray: 220;
+            stroke-dashoffset: 220;
+            transition: stroke-dashoffset 1.8s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 1s ease;
+        }
+
+        .gauge-center-text {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            fill: #f8fafc;
+        }
+
+        .gauge-sub {
+            font-size: 0.7rem;
+            fill: var(--muted);
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Verdict banner ──────────────────────────────────── */
+        .verdict-banner {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 28px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            font-family: var(--font-display);
+        }
+
+        .verdict-banner.fraud {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1.5px solid rgba(239, 68, 68, 0.35);
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.15);
+        }
+
+        .verdict-banner.genuine {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1.5px solid rgba(16, 185, 129, 0.35);
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.15);
+        }
+
+        .verdict-icon {
+            font-size: 2.6rem;
+            flex-shrink: 0;
+            animation: pulse-icon 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        .verdict-text h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 4px;
+        }
+
+        .verdict-text p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .verdict-text h2.fraud {
+            color: var(--danger);
+        }
+
+        .verdict-text h2.genuine {
+            color: var(--success);
+        }
+
+        /* ── SHAP bars ───────────────────────────────────────── */
+        .shap-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .shap-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 0;
+        }
+
+        .shap-label-left {
+            text-align: right;
+            padding-right: 14px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .shap-label-right {
+            text-align: left;
+            padding-left: 14px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .shap-bar-wrap {
+            grid-column: 1 / -1;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            margin: 2px 0;
+        }
+
+        .shap-bar-center {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+
+        .shap-bar {
+            height: 28px;
+            border-radius: 6px;
+            transition: width 1.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            width: 0;
+            position: absolute;
+        }
+
+        .shap-bar.positive {
+            background: linear-gradient(90deg, #f97316, #ef4444);
+            left: 50%;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
+        }
+
+        .shap-bar.negative {
+            background: linear-gradient(270deg, #06b6d4, #10b981);
+            right: 50%;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+        }
+
+        .shap-value-pill {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 8px;
+            color: #fff;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.5s ease 1.2s;
+        }
+
+        .shap-value-pill.positive {
+            background: rgba(239, 68, 68, 0.85);
+            left: calc(50% + 4px);
+        }
+
+        .shap-value-pill.negative {
+            background: rgba(16, 185, 129, 0.85);
+            right: calc(50% + 4px);
+        }
+
+        /* ── Business rule cards ─────────────────────────────── */
+        .rule-flag-card {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1.5px solid rgba(239, 68, 68, 0.3);
+            border-radius: 16px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            animation: fadeSlide 0.5s ease both;
+        }
+
+        .rule-flag-card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .rule-flag-card:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .rule-flag-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .rule-flag-text {
+            font-size: 0.92rem;
+            color: #fca5a5;
+            line-height: 1.5;
+        }
+
+        .rule-flag-text strong {
+            display: block;
+            color: var(--danger);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 4px;
+        }
+
+        /* ── Legend ──────────────────────────────────────────── */
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        /* ── Claim context grid ──────────────────────────────── */
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .context-item label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .context-item strong {
+            font-size: 1rem;
+        }
+
+        /* ── Animated counters ───────────────────────────────── */
+        .kpi-value-animated {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Explainable AI · Claim #{{ '%05d' % claim_id }}</p>
+                <h1 class="title">Why is this claim {{ prediction }}?</h1>
+                <p class="subtitle">Full breakdown of every signal that drove the AI's decision — ML model features plus
+                    business rule checks.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-secondary" href="/claim_details/{{ claim_id }}">← Claim Details</a>
+                <a class="btn btn-secondary" href="/claims">All Claims</a>
+            </div>
+        </header>
+
+        <!-- ── Verdict Banner ──────────────────────────────── -->
+        {% if prediction == 'Fraud' %}
+        <div class="verdict-banner fraud">
+            <div class="verdict-icon">🚨</div>
+            <div class="verdict-text">
+                <h2 class="fraud">⚠ Flagged as Fraudulent</h2>
+                <p>The AI model and rule engine detected patterns consistent with fraudulent behaviour. Review all
+                    signals below before making a final decision.</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="verdict-banner genuine">
+            <div class="verdict-icon">✅</div>
+            <div class="verdict-text">
+                <h2 class="genuine">✓ Assessed as Legitimate</h2>
+                <p>No significant fraud indicators detected. The features below show what supported this conclusion.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ── Top KPI row ─────────────────────────────────── -->
+        <div class="card hero" style="margin-bottom: 24px;">
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: center;">
+
+                <!-- Circular Gauge -->
+                <div class="gauge-wrap">
+                    <svg class="gauge-svg" width="160" height="110" viewBox="0 0 160 110">
+                        <!-- track arc (semi-circle 220° sweep) -->
+                        <path class="gauge-track" d="M 20 100 A 60 60 0 1 1 140 100" stroke-width="14" />
+                        <!-- fill arc -->
+                        <path id="gaugeFill" class="gauge-fill" d="M 20 100 A 60 60 0 1 1 140 100" stroke-width="14"
+                            stroke="{{ 'url(#gradFraud)' if prediction == 'Fraud' else 'url(#gradGenuine)' }}" />
+                        <defs>
+                            <linearGradient id="gradFraud" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#f97316" />
+                                <stop offset="100%" stop-color="#ef4444" />
+                            </linearGradient>
+                            <linearGradient id="gradGenuine" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#06b6d4" />
+                                <stop offset="100%" stop-color="#10b981" />
+                            </linearGradient>
+                        </defs>
+                        <text x="80" y="86" text-anchor="middle" class="gauge-center-text"
+                            fill="{{ '#ef4444' if prediction == 'Fraud' else '#10b981' }}">
+                            <tspan id="gaugeLabel">{{ "%.0f"|format(probability) }}%</tspan>
+                        </text>
+                        <text x="80" y="104" text-anchor="middle" class="gauge-sub">RISK SCORE</text>
+                    </svg>
+                </div>
+
+                <!-- KPI cards -->
+                <div class="kpi-grid" style="margin-top: 0;">
+                    <div class="kpi">
+                        <div class="label">Prediction</div>
+                        <div class="value"
+                            style="color: {{ 'var(--danger)' if prediction == 'Fraud' else 'var(--success)' }}; -webkit-text-fill-color: {{ '#ef4444' if prediction == 'Fraud' else '#10b981' }}">
+                            {{ prediction }}
+                        </div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">Fraud Probability</div>
+                        <div class="value"
+                            style="-webkit-text-fill-color: {{ '#ef4444' if prediction == 'Fraud' else '#10b981' }}">
+                            {{ "%.1f"|format(probability) }}%
+                        </div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">Decision Action</div>
+                        <div class="value" style="-webkit-text-fill-color: #f8fafc;">
+                            {% if prediction == 'Fraud' %}Investigate{% else %}Process{% endif %}
+                        </div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">SHAP Features</div>
+                        <div class="value">{{ shap_reasons | length }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Business Rule Flags (always high priority) ─── -->
+        {% if rule_flags %}
+        <section class="card" style="margin-bottom: 24px; border-color: rgba(239,68,68,0.3);">
+            <h2 class="section-title">⚠ Business Rule Flags</h2>
+            <p class="section-subtitle">These financial inconsistencies were detected by deterministic rules —
+                independent of the ML model.</p>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+                {% for r in rule_flags %}
+                <div class="rule-flag-card">
+                    <div class="rule-flag-icon">🚩</div>
+                    <div class="rule-flag-text">
+                        <strong>Rule Triggered</strong>
+                        {{ r.impact }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- ── SHAP Feature Importance Chart ─────────────── -->
+        {% if shap_reasons %}
+        <section class="card" style="margin-bottom: 24px;">
+            <h2 class="section-title">📊 AI Feature Impact (SHAP Values)</h2>
+            <p class="section-subtitle">
+                Each bar shows how much a feature <strong style="color: #f97316;">increased (→ fraud)</strong>
+                or <strong style="color: #10b981;">reduced (← genuine)</strong> the fraud probability.
+                Longer bars = stronger influence.
+            </p>
+
+            <!-- Legend -->
+            <div class="legend-row">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: linear-gradient(90deg, #f97316, #ef4444);"></div>
+                    <span>Increased fraud risk</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: linear-gradient(270deg, #06b6d4, #10b981);"></div>
+                    <span>Reduced fraud risk</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot"
+                        style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);"></div>
+                    <span>Center line = baseline (no effect)</span>
+                </div>
+            </div>
+
+            <!-- Bar chart -->
+            <div class="shap-chart" id="shapChart" style="margin-top: 28px;">
+                {% set max_abs = namespace(val=0.001) %}
+                {% for r in shap_reasons %}
+                {% if r.impact | abs > max_abs.val %}
+                {% set max_abs.val = r.impact | abs %}
+                {% endif %}
+                {% endfor %}
+
+                {% for r in shap_reasons %}
+                {% set pct = (r.impact | abs / max_abs.val * 48) | round(2) %}
+                {% set is_pos = r.impact > 0 %}
+
+                <!-- Feature name above bar -->
+                <div style="margin-bottom: -6px; padding: 0 8px;">
+                    <span style="font-size: 0.8rem; color: var(--muted); font-weight: 500;">
+                        {{ loop.index }}. {{ r.feature | replace('_', ' ') | replace('num__', '') | replace('cat__', '')
+                        | title }}
+                    </span>
+                    {% if is_pos %}
+                    <span style="font-size: 0.75rem; color: #ef4444; margin-left: 6px;"
+                        title="This feature pushed the model toward predicting FRAUD">▲ Fraud signal</span>
+                    {% else %}
+                    <span style="font-size: 0.75rem; color: #10b981; margin-left: 6px;"
+                        title="This feature pushed the model toward predicting GENUINE">▼ Genuine signal</span>
+                    {% endif %}
+                </div>
+
+                <!-- Bar row -->
+                <div
+                    style="position: relative; height: 36px; background: rgba(255,255,255,0.02); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04);">
+                    <!-- Centre line -->
+                    <div
+                        style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.12); transform: translateX(-50%);">
+                    </div>
+
+                    {% if is_pos %}
+                    <!-- Positive bar (toward fraud, grows right from center) -->
+                    <div class="shap-bar positive" id="bar_{{ loop.index }}" data-target="{{ pct }}"
+                        style="top: 4px; height: 28px; width: 0%;"></div>
+                    <span class="shap-value-pill positive" id="pill_{{ loop.index }}" style="left: calc(50% + 4px);">
+                        +{{ "%.4f"|format(r.impact) }}
+                    </span>
+                    {% else %}
+                    <!-- Negative bar (toward genuine, grows left from center) -->
+                    <div class="shap-bar negative" id="bar_{{ loop.index }}" data-target="{{ pct }}"
+                        style="top: 4px; height: 28px; width: 0%;"></div>
+                    <span class="shap-value-pill negative" id="pill_{{ loop.index }}" style="right: calc(50% + 4px);">
+                        {{ "%.4f"|format(r.impact) }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- ── Verbose Feature Explanations ──────────────── -->
+        <section class="card" style="margin-bottom: 24px;">
+            <h2 class="section-title">🔍 Feature-by-Feature Explanation</h2>
+            <p class="section-subtitle">Plain English description of each AI signal found in this claim.</p>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+                {% for r in shap_reasons %}
+                {% set is_pos = r.impact > 0 %}
+                <div style="
+                    background: {% if is_pos %}rgba(239,68,68,0.06){% else %}rgba(16,185,129,0.06){% endif %};
+                    border: 1px solid {% if is_pos %}rgba(239,68,68,0.2){% else %}rgba(16,185,129,0.2){% endif %};
+                    border-radius: 14px;
+                    padding: 16px 20px;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 14px;
+                ">
+                    <div style="font-size: 1.3rem; flex-shrink: 0; margin-top: 1px;">
+                        {% if is_pos %}🔴{% else %}🟢{% endif %}
+                    </div>
+                    <div style="flex: 1;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px;">
+                            <strong style="font-size: 0.88rem; color: var(--text);">
+                                {{ r.feature | replace('_', ' ') | replace('num__', '') | replace('cat__', '') | title
+                                }}
+                            </strong>
+                            <span style="font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 8px;
+                                background: {% if is_pos %}rgba(239,68,68,0.2){% else %}rgba(16,185,129,0.2){% endif %};
+                                color: {% if is_pos %}#fca5a5{% else %}#6ee7b7{% endif %}; white-space: nowrap;">
+                                SHAP {{ "%+.4f"|format(r.impact) }}
+                            </span>
+                        </div>
+                        <p style="font-size: 0.86rem; color: var(--text-secondary); margin: 0; line-height: 1.55;">
+                            {% if is_pos %}
+                            This feature <strong style="color: #f97316;">increased the fraud probability</strong>
+                            for this claim. The value observed for "<em>{{ r.feature | replace('_', ' ') |
+                                replace('num__', '') | replace('cat__', '') }}</em>"
+                            was above what is considered a low-risk baseline, contributing positively to the fraud
+                            score.
+                            {% else %}
+                            This feature <strong style="color: #10b981;">reduced the fraud probability</strong>
+                            for this claim. The value observed for "<em>{{ r.feature | replace('_', ' ') |
+                                replace('num__', '') | replace('cat__', '') }}</em>"
+                            was consistent with legitimate claim behaviour, acting as a negative fraud signal.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% else %}
+        <section class="card" style="margin-bottom: 24px;">
+            <h2 class="section-title">📊 AI Feature Impact</h2>
+            <div style="text-align: center; padding: 40px 20px; color: var(--muted);">
+                <p style="font-size: 2rem; margin-bottom: 12px;">🔒</p>
+                <p style="font-size: 1.05rem;">SHAP feature explanations not available.</p>
+                <p style="font-size: 0.9rem; margin-top: 8px;">The prediction was made by the ML model, but the SHAP
+                    library is not installed in this environment. The fraud probability and business rule checks above
+                    are still valid.</p>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- ── Claim Context Overview ──────────────────────── -->
+        <section class="card" style="margin-bottom: 24px;">
+            <h2 class="section-title">📋 Claim Context</h2>
+            <p class="section-subtitle">Key details from this claim for quick reference.</p>
+            <div class="context-grid">
+                <div class="context-item">
+                    <label>Claimant</label>
+                    <strong>{{ claim_context.user }}</strong>
+                </div>
+                <div class="context-item">
+                    <label>Admin Decision</label>
+                    <strong>
+                        {% if claim_context.decision == 'Approved' %}
+                        <span style="color: var(--success);">✓ Approved</span>
+                        {% elif claim_context.decision == 'Rejected' %}
+                        <span style="color: var(--danger);">✗ Rejected</span>
+                        {% else %}
+                        <span style="color: var(--warning);">⏳ Pending</span>
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="context-item">
+                    <label>Total Claim</label>
+                    <strong>₹{{ "{:,.0f}".format(claim_context.total_claim_amount | float) }}</strong>
+                </div>
+                <div class="context-item">
+                    <label>Incident Type</label>
+                    <strong>{{ claim_context.incident_type }}</strong>
+                </div>
+                <div class="context-item">
+                    <label>Severity</label>
+                    <strong>{{ claim_context.incident_severity }}</strong>
+                </div>
+                <div class="context-item">
+                    <label>Vehicle</label>
+                    <strong>{{ claim_context.auto_make }} {{ claim_context.auto_model }} ({{ claim_context.auto_year
+                        }})</strong>
+                </div>
+                <div class="context-item">
+                    <label>Authorities</label>
+                    <strong>{{ claim_context.authorities_contacted }}</strong>
+                </div>
+                <div class="context-item">
+                    <label>Police Report</label>
+                    <strong>{{ claim_context.police_report_available }}</strong>
+                </div>
+                <div class="context-item">
+                    <label>Witnesses</label>
+                    <strong>{{ claim_context.witnesses }}</strong>
+                </div>
+                <div class="context-item">
+                    <label>Property Damage</label>
+                    <strong>{{ claim_context.property_damage }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── How the AI decided ──────────────────────────── -->
+        <section class="card">
+            <h2 class="section-title">🤖 How the AI reached this decision</h2>
+            <p class="section-subtitle">Transparency note on the XAI methodology used.</p>
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 20px;">
+                <div
+                    style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 14px; padding: 18px;">
+                    <div style="font-size: 1.4rem; margin-bottom: 8px;">🌲</div>
+                    <strong style="font-size: 0.9rem;">XGBoost Classifier</strong>
+                    <p style="font-size: 0.83rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                        An ensemble of decision trees trained on thousands of historical claims. Each tree votes; the
+                        combined probability determines fraud likelihood.
+                    </p>
+                </div>
+                <div
+                    style="background: rgba(236,72,153,0.08); border: 1px solid rgba(236,72,153,0.2); border-radius: 14px; padding: 18px;">
+                    <div style="font-size: 1.4rem; margin-bottom: 8px;">📊</div>
+                    <strong style="font-size: 0.9rem;">SHAP (SHapley Additive exPlanations)</strong>
+                    <p style="font-size: 0.83rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                        A game-theory based method that attributes the output to each feature. Positive SHAP = feature
+                        increases fraud probability; negative SHAP = feature lowers it.
+                    </p>
+                </div>
+                <div
+                    style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 14px; padding: 18px;">
+                    <div style="font-size: 1.4rem; margin-bottom: 8px;">⚖️</div>
+                    <strong style="font-size: 0.9rem;">Business Rule Engine</strong>
+                    <p style="font-size: 0.83rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                        Deterministic rules (e.g., claim-to-premium ratio, sub-claim mismatch) layer on top of the ML
+                        model to catch financial inconsistencies.
+                    </p>
+                </div>
+                <div
+                    style="background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2); border-radius: 14px; padding: 18px;">
+                    <div style="font-size: 1.4rem; margin-bottom: 8px;">🎯</div>
+                    <strong style="font-size: 0.9rem;">Fraud Threshold: 20%</strong>
+                    <p style="font-size: 0.83rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                        If final risk score ≥ 20%, the claim is flagged as Fraud. This conservative threshold maximises
+                        recall to avoid missing real fraud cases.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // ── Animate gauge ───────────────────────────────────────
+        (function () {
+            const probability = {{ probability | round(1)
+        }};
+        const fill = document.getElementById('gaugeFill');
+        // The arc path has a total length of ~220 for the semi-circle
+        const totalLength = 220;
+        const pct = Math.min(probability / 100, 1);
+        const offset = totalLength * (1 - pct);
+        setTimeout(() => {
+            fill.style.strokeDashoffset = offset;
+        }, 200);
+        }) ();
+
+        // ── Animate SHAP bars ───────────────────────────────────
+        (function () {
+            const bars = document.querySelectorAll('.shap-bar');
+            const pills = document.querySelectorAll('.shap-value-pill');
+            setTimeout(() => {
+                bars.forEach(bar => {
+                    const target = parseFloat(bar.dataset.target || 0);
+                    bar.style.width = target + '%';
+                });
+                pills.forEach(pill => {
+                    pill.style.opacity = '1';
+                });
+            }, 300);
+        })();
+    </script>
+</body>
+
+</html>

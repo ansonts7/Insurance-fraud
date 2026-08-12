@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header" style="border-bottom: none; padding-bottom: 0;">
+            <div>
+                <p class="eyebrow">Claims Intelligence</p>
+                <h1 class="title">Fraud Intelligence Portal</h1>
+                <p class="subtitle">Secure access for claims teams to submit, review, and explain fraud signals.</p>
+            </div>
+        </header>
+
+
+
+
+
+        <div class="auth-grid">
+            <section class="card hero">
+                <h2 class="section-title">Welcome back</h2>
+                <p class="section-subtitle">Sign in to continue your review workflow.</p>
+                {% if error %}
+                <div class="alert alert-error">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+                {% endif %}
+                {% if success %}
+                <div class="alert alert-success">
+                    <strong>Success:</strong> {{ success }}
+                </div>
+                {% endif %}
+                <form class="form-grid" method="post">
+                    <div class="field">
+                        <label for="username">Username</label>
+                        <input id="username" name="username" type="text" autocomplete="username" required>
+                    </div>
+                    <div class="field">
+                        <label for="password">Password</label>
+                        <input id="password" name="password" type="password" autocomplete="current-password" required>
+                    </div>
+                    <div class="action-row">
+                        <button type="submit">Login</button>
+                        <a class="btn btn-secondary" href="/register">Create account</a>
+                    </div>
+                </form>
+            </section>
+
+            <section class="card">
+                <h2 class="section-title">Why this portal?</h2>
+                <p class="section-subtitle">Track submissions, flag high-risk claims, and view model explanations in a
+                    single view.</p>
+                <div class="kpi-grid">
+                    <div class="kpi">
+                        <div class="label">Signal coverage</div>
+                        <div class="value">32 features</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">Decision threshold</div>
+                        <div class="value">20% risk</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">Explainability</div>
+                        <div class="value">Top drivers</div>
+                    </div>
+                </div>
+                <a class="footer-link" href="/register">Need access? Register here →</a>
+            </section>
+        </div>
+    </div>
+
+    </div>
+</body>
+
+</html>

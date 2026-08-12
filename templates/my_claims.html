@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Claims · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">My Submissions</p>
+                <h1 class="title">My Claims</h1>
+                <p class="subtitle">Track the status of your submitted insurance claims.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn" href="/user">Submit New Claim</a>
+                <a class="btn btn-ghost" href="/logout">Logout</a>
+            </div>
+        </header>
+
+        {% if notifications %}
+        <div id="notification-area" style="margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px;">
+            {% for notif in notifications %}
+            <div class="notification-card" id="notif-{{ notif[0] }}" style="
+                display: flex;
+                align-items: flex-start;
+                gap: 14px;
+                background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.08));
+                border: 1px solid rgba(16,185,129,0.35);
+                border-radius: 16px;
+                padding: 16px 20px;
+                box-shadow: 0 4px 20px rgba(16,185,129,0.10);
+                animation: slideInNotif 0.4s ease;
+                position: relative;
+            ">
+                <span style="font-size: 1.8rem; flex-shrink: 0; margin-top: 2px;">💸</span>
+                <div style="flex: 1;">
+                    <p
+                        style="font-weight: 600; color: #6ee7b7; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 4px;">
+                        Payout Notification</p>
+                    <p style="margin: 0; color: var(--text, #e2e8f0); font-size: 0.95rem; line-height: 1.5;">{{ notif[1]
+                        }}</p>
+                    <p style="margin: 6px 0 0; color: var(--muted, #94a3b8); font-size: 0.78rem;">{{ notif[3] }}</p>
+                </div>
+                <button onclick="document.getElementById('notif-{{ notif[0] }}').style.display='none'" style="
+                    background: none; border: none; color: #6ee7b7; cursor: pointer;
+                    font-size: 1.4rem; line-height: 1; padding: 0; flex-shrink: 0;
+                    opacity: 0.7; transition: opacity 0.2s;
+                " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'"
+                    title="Dismiss">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        <style>
+            @keyframes slideInNotif {
+                from {
+                    opacity: 0;
+                    transform: translateY(-12px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
+        {% endif %}
+
+        {% if claims %}
+        <section class="card">
+            <h2 class="section-title">Your Submitted Claims</h2>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Claim ID</th>
+                            <th>Status</th>
+                            <th>Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims %}
+                        <tr>
+                            <td><strong>#{{ claim[0] }}</strong></td>
+                            <td><span class="badge">{{ claim[2] or 'Submitted' }}</span></td>
+                            <td>
+                                {% set decision = claim[5] or 'Pending' %}
+                                {% if decision == 'Approved' %}
+                                <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
+                                    <span class="badge success">✓ Approved</span>
+                                    {% if claim[7] and claim[6] and claim[6] > 0 %}
+                                    <div
+                                        style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; padding: 10px 14px;">
+                                        <div
+                                            style="font-size: 0.75rem; color: #6ee7b7; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px;">
+                                            💸 Payout Sent</div>
+                                        <div style="font-size: 1.2rem; font-weight: 700; color: var(--success);">₹{{
+                                            '{:,.2f}'.format(claim[6]) }}</div>
+                                    </div>
+                                    {% elif claim[6] and claim[6] > 0 %}
+                                    <div
+                                        style="background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); border-radius: 10px; padding: 8px 14px;">
+                                        <div
+                                            style="font-size: 0.75rem; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px;">
+                                            Estimated Payout</div>
+                                        <div style="font-size: 1.15rem; font-weight: 700; color: #60a5fa;">₹{{
+                                            '{:,.2f}'.format(claim[6]) }}</div>
+                                    </div>
+                                    {% endif %}
+                                    <a class="btn btn-secondary btn-sm" href="/bank_details">🏦 Bank Details</a>
+                                </div>
+                                {% elif decision == 'Rejected' %}
+                                <span class="badge danger">✗ Rejected</span>
+                                {% else %}
+                                <span class="badge warning">Awaiting Decision</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% else %}
+        <section class="card hero">
+            <h2 class="section-title">No Claims Yet</h2>
+            <p class="section-subtitle">You haven't submitted any insurance claims yet.</p>
+            <div style="text-align: center; padding: 40px 20px;">
+                <a class="btn" href="/user">Submit Your First Claim</a>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</body>
+
+</html>

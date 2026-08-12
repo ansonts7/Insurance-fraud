@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claims Queue · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Admin Console</p>
+                <h1 class="title">Claims Review Queue</h1>
+                <p class="subtitle">Review all submitted claims, run fraud predictions, and make approval decisions.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-secondary" href="/admin">Dashboard</a>
+                <a class="btn btn-secondary" href="/logout">Logout</a>
+            </div>
+        </header>
+
+        <section class="card">
+            <h2 class="section-title">All Claims</h2>
+
+            {% if claims %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Fraud Signal</th>
+                            <th>Decision</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims %}
+                        <tr>
+                            <td><strong>#{{ claim[0] }}</strong></td>
+                            <td>{{ claim[1] }}</td>
+                            <td><span class="badge">{{ claim[2] or 'Submitted' }}</span></td>
+                            <td>
+                                {% if claim[3] %}
+                                {% if claim[3] == 'Fraud' %}
+                                <span class="badge danger">⚠ Fraud</span>
+                                {% else %}
+                                <span class="badge success">✓ Legitimate</span>
+                                {% endif %}
+                                {% if claim[4] %}
+                                <span style="color: var(--muted); font-size: 0.85em; margin-left: 6px;">{{ claim[4] |
+                                    round(1) }}%</span>
+                                {% endif %}
+                                {% else %}
+                                <span class="badge">Not analyzed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set decision = claim[5] or 'Pending' %}
+                                {% if decision == 'Approved' %}
+                                <span class="badge success">✓ Approved</span>
+                                {% elif decision == 'Rejected' %}
+                                <span class="badge danger">✗ Rejected</span>
+                                {% else %}
+                                <span class="badge warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-row" style="flex-wrap: wrap; gap: 6px;">
+                                    <a class="btn btn-ghost btn-sm" href="/claim_details/{{ claim[0] }}">Details</a>
+                                    <a class="btn btn-ghost btn-sm" href="/predict/{{ claim[0] }}">Predict</a>
+                                    {% set decision = claim[5] or 'Pending' %}
+                                    {% if decision == 'Pending' %}
+                                    <a class="btn btn-sm"
+                                        style="background: var(--success); border-color: var(--success);"
+                                        href="/approve/{{ claim[0] }}"
+                                        onclick="return confirm('Approve this claim?')">Approve</a>
+                                    <a class="btn btn-sm"
+                                        style="background: var(--danger); border-color: var(--danger);"
+                                        href="/reject/{{ claim[0] }}"
+                                        onclick="return confirm('Reject this claim?')">Reject</a>
+                                    {% endif %}
+                                    {% if decision == 'Approved' %}
+                                    <a class="btn btn-secondary btn-sm" href="/admin/bank_details/{{ claim[1] }}">🏦
+                                        Bank Details</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: var(--muted); padding: 40px 20px;">
+                No claims have been submitted yet.
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Details · Admin · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Admin · Claimant Info</p>
+                <h1 class="title">Bank Details</h1>
+                <p class="subtitle">Saved payment details for <strong>{{ claimant }}</strong>. Review and send payout
+                    below.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-ghost" href="/claims">← Back to Claims</a>
+            </div>
+        </header>
+
+
+        {% if request.args.get('error') == 'no_bank_details' %}
+        <div
+            style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; color: #fca5a5; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.3rem;">🚫</span>
+            <span><strong>Payout blocked:</strong> This user has not submitted their bank details yet. Payout cannot be
+                sent until bank details are on file.</span>
+        </div>
+        {% endif %}
+
+        {% if approved_claims %}
+
+        <section class="card" style="margin-bottom: 24px;">
+            <h2 class="section-title" style="margin-bottom: 6px;">💰 Approved Claims — Repair Cost Summary</h2>
+            <p class="section-subtitle" style="margin-bottom: 20px;">Combined from all analyzed images. Click "Send
+                Payout" to mark as disbursed.</p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Claim ID</th>
+                            <th>Images Analyzed</th>
+                            <th>Total Repair Cost</th>
+                            <th>Payout Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in approved_claims %}
+                        {% set claim_id = claim[0] %}
+                        {% set repair_total = claim[1] %}
+                        {% set payout_sent = claim[2] %}
+                        {% set analyzed = claim[3] %}
+                        {% set total_imgs = claim[4] %}
+                        {% set live_total = claim[5] %}
+                        <tr>
+                            <td><strong>#{{ claim_id }}</strong></td>
+                            <td>
+                                {% if total_imgs == 0 %}
+                                <span class="badge">No images</span>
+                                {% elif analyzed == total_imgs %}
+                                <span class="badge success">{{ analyzed }}/{{ total_imgs }} analyzed</span>
+                                {% else %}
+                                <span class="badge warning">{{ analyzed }}/{{ total_imgs }} analyzed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if live_total and live_total > 0 %}
+                                <strong style="font-size: 1.15rem; color: #60a5fa;">₹{{ '{:,.2f}'.format(live_total)
+                                    }}</strong>
+                                {% elif analyzed == 0 %}
+                                <span style="color: var(--muted);">No images analyzed yet</span>
+                                {% else %}
+                                <span style="color: var(--muted);">₹0.00</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payout_sent %}
+                                <span class="badge success">✓ Payout Sent</span>
+                                {% else %}
+                                <span class="badge warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not details %}
+                                <span style="color: #fca5a5; font-size: 0.88rem;">⚠ No bank details on file</span>
+                                {% elif payout_sent %}
+                                <span style="color: var(--muted); font-size: 0.9rem;">Already sent</span>
+                                {% elif analyzed == 0 %}
+                                <span style="color: var(--muted); font-size: 0.9rem; font-style: italic;">Analyze images
+                                    first</span>
+                                {% else %}
+                                {% set confirm_msg = "Send payout of Rs." ~ (live_total or 0)|round(2) ~ " to " ~
+                                claimant ~ "?" %}
+                                <form method="post" action="/admin/send_payout/{{ claim_id }}"
+                                    onsubmit="return confirm('{{ confirm_msg }}')">
+                                    <button type="submit" class="btn btn-sm"
+                                        style="background: var(--success); border-color: var(--success); padding: 6px 16px; font-size: 0.88rem;">
+                                        💸 Send Payout
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% set total_sent = approved_claims | selectattr('2') | map(attribute=1) | select('gt', 0) | list %}
+            {% set grand_total = namespace(value=0) %}
+            {% for c in approved_claims %}
+            {% if c[2] and c[1] %}{% set grand_total.value = grand_total.value + c[1] %}{% endif %}
+            {% endfor %}
+            {% if grand_total.value > 0 %}
+            <div
+                style="margin-top: 20px; padding: 16px 20px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span
+                    style="color: #6ee7b7; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">Total
+                    Payout Already Sent</span>
+                <strong style="font-size: 1.4rem; color: var(--success);">₹{{ '{:,.2f}'.format(grand_total.value)
+                    }}</strong>
+            </div>
+            {% endif %}
+        </section>
+        {% else %}
+        <div
+            style="background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; color: #fbbf24; font-size: 0.95rem;">
+            ⚠️ No approved claims found for <strong>{{ claimant }}</strong>. A claim must be approved before a payout
+            can be sent.
+        </div>
+        {% endif %}
+
+        {% if details %}
+        <section class="card">
+            <h2 class="section-title" style="margin-bottom: 24px;">🏦 Payment Information</h2>
+            <div class="form-grid two" style="pointer-events: none;">
+                <div class="field">
+                    <label>Account Holder</label>
+                    <input type="text" value="{{ details[2] }}" readonly style="opacity: 0.8; cursor: default;">
+                </div>
+                <div class="field">
+                    <label>Bank Name</label>
+                    <input type="text" value="{{ details[3] }}" readonly style="opacity: 0.8; cursor: default;">
+                </div>
+                <div class="field">
+                    <label>Account Number</label>
+                    <input type="text"
+                        value="{{ details[4][:4] ~ '****' ~ details[4][-4:] if details[4]|length > 8 else '****' }}"
+                        readonly style="opacity: 0.8; cursor: default; letter-spacing: 0.1em;">
+                </div>
+                <div class="field">
+                    <label>IFSC / SWIFT Code</label>
+                    <input type="text" value="{{ details[5] }}" readonly
+                        style="opacity: 0.8; cursor: default; text-transform: uppercase;">
+                </div>
+                <div class="field">
+                    <label>Account Type</label>
+                    <input type="text" value="{{ details[6] }}" readonly style="opacity: 0.8; cursor: default;">
+                </div>
+            </div>
+        </section>
+        {% else %}
+        <section class="card hero" style="text-align: center; padding: 60px 32px;">
+            <p style="font-size: 3rem; margin-bottom: 16px;">🏦</p>
+            <h2 class="section-title" style="margin-bottom: 8px;">No Bank Details on File</h2>
+            <p class="section-subtitle">{{ claimant }} has not yet saved their bank details.</p>
+        </section>
+        {% endif %}
+    </div>
+</body>
+
+</html>

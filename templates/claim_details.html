@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Details #{{ claim_id }} · Fraud Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Claim #{{ claim_id }}</p>
+                <h1 class="title">Claim Details</h1>
+                <p class="subtitle">Complete insurance claim information submitted by {{ claim_data.user }}</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-secondary" href="/claims">Back to Queue</a>
+                {% if not claim_data.fraud_prediction %}
+                <a class="btn" href="/predict/{{ claim_id }}">Run Prediction</a>
+                {% else %}
+                <a class="btn" href="/explain/{{ claim_id }}">View Explanation</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Fraud Assessment Summary -->
+        {% if claim_data.fraud_prediction %}
+        <section class="card hero">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 40px;">
+                <div>
+                    <h2 class="section-title">Fraud Assessment</h2>
+                    <p class="section-subtitle">Machine learning analysis results</p>
+                </div>
+                <div style="text-align: right;">
+                    {% if claim_data.fraud_prediction == 'Fraud' %}
+                    <span class="badge danger" style="font-size: 1.2em; padding: 12px 24px;">⚠️ {{
+                        claim_data.fraud_prediction }}</span>
+                    {% else %}
+                    <span class="badge success" style="font-size: 1.2em; padding: 12px 24px;">✓ {{
+                        claim_data.fraud_prediction }}</span>
+                    {% endif %}
+                    <div style="margin-top: 12px;">
+                        {% if claim_data.fraud_probability is not none %}
+                        <strong
+                            style="font-size: 2em; color: {% if claim_data.fraud_probability >= 20 %}var(--danger){% else %}var(--success){% endif %}">
+                            {{ "%.1f"|format(claim_data.fraud_probability) }}%
+                        </strong>
+                        <p style="color: var(--muted); margin-top: 4px;">Risk Score</p>
+                        {% else %}
+                        <strong style="font-size: 1.2em; color: var(--muted);">Not Analyzed</strong>
+                        <p style="color: var(--muted); margin-top: 4px;">Run prediction to see risk score</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Customer & Policy Details -->
+        <section class="card">
+            <h2 class="section-title">Customer & Policy Information</h2>
+            <p class="section-subtitle">Policyholder profile and coverage details</p>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top: 24px;">
+                <div>
+                    <label style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Months
+                        as Customer</label>
+                    <strong style="font-size: 1.1em;">{{ data.months_as_customer }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Age</label>
+                    <strong style="font-size: 1.1em;">{{ data.age }}</strong>
+                </div>
+                <div>
+                    <label style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Policy
+                        State</label>
+                    <strong style="font-size: 1.1em;">{{ data.policy_state }}</strong>
+                </div>
+                <div>
+                    <label style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Policy
+                        Deductible</label>
+                    <strong style="font-size: 1.1em;">₹{{ "{:,.0f}".format(data.policy_deductable) }}</strong>
+                </div>
+                <div>
+                    <label style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Annual
+                        Premium</label>
+                    <strong style="font-size: 1.1em;">₹{{ "{:,.0f}".format(data.policy_annual_premium) }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Umbrella
+                        Limit</label>
+                    <strong style="font-size: 1.1em;">₹{{ "{:,.0f}".format(data.umbrella_limit) }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- Insured Person Details -->
+        <section class="card">
+            <h2 class="section-title">Insured Person Profile</h2>
+            <p class="section-subtitle">Demographics and background information</p>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top: 24px;">
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Sex</label>
+                    <strong style="font-size: 1.1em;">{{ data.insured_sex }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Education
+                        Level</label>
+                    <strong style="font-size: 1.1em;">{{ data.insured_education_level }}</strong>
+                </div>
+
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Relationship</label>
+                    <strong style="font-size: 1.1em;">{{ data.insured_relationship }}</strong>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Incident Details -->
+        <section class="card">
+            <h2 class="section-title">Incident Information</h2>
+            <p class="section-subtitle">Details about the accident or incident</p>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top: 24px;">
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Incident
+                        Type</label>
+                    <strong style="font-size: 1.1em;">{{ data.incident_type }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Collision
+                        Type</label>
+                    <strong style="font-size: 1.1em;">{{ data.collision_type }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Severity</label>
+                    <strong style="font-size: 1.1em;">{{ data.incident_severity }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Authorities
+                        Contacted</label>
+                    <strong style="font-size: 1.1em;">{{ data.authorities_contacted }}</strong>
+                </div>
+
+                <div>
+                    <label style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Hour of
+                        Day</label>
+                    <strong style="font-size: 1.1em;">{{ data.incident_hour_of_the_day }}:00</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Vehicles
+                        Involved</label>
+                    <strong style="font-size: 1.1em;">{{ data.number_of_vehicles_involved }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Property
+                        Damage</label>
+                    <strong style="font-size: 1.1em;">{{ data.property_damage }}</strong>
+                </div>
+
+                <div>
+                    <label style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Police
+                        Report Available</label>
+                    <strong style="font-size: 1.1em;">{{ data.police_report_available }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- Claim Amounts -->
+        <section class="card">
+            <h2 class="section-title">Claim Amounts</h2>
+            <p class="section-subtitle">Financial breakdown of the claim</p>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top: 24px;">
+                <div>
+                    <label style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Total
+                        Claim Amount</label>
+                    <strong style="font-size: 1.3em; color: var(--primary);">₹{{
+                        "{:,.2f}".format(data.total_claim_amount) }}</strong>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Vehicle Details -->
+        <section class="card">
+            <h2 class="section-title">Vehicle Information</h2>
+            <p class="section-subtitle">Details about the insured vehicle</p>
+
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top: 24px;">
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Make</label>
+                    <strong style="font-size: 1.1em;">{{ data.auto_make }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Model</label>
+                    <strong style="font-size: 1.1em;">{{ data.auto_model }}</strong>
+                </div>
+                <div>
+                    <label
+                        style="display: block; color: var(--muted); font-size: 0.875rem; margin-bottom: 4px;">Year</label>
+                    <strong style="font-size: 1.1em;">{{ data.auto_year }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vehicle Images -->
+        <section class="card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <div>
+                    <h2 class="section-title">Vehicle Images</h2>
+                    <p class="section-subtitle">Photos submitted by the claimant.</p>
+                </div>
+                <div style="font-size: 2rem; opacity: 0.8;">📸</div>
+            </div>
+
+            {% if images %}
+            <div style="display: grid; gap: 12px; margin-top: 24px;">
+                {% for image in images %}
+                <div
+                    style="background: var(--panel-strong); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 1.5rem; color: var(--accent-primary-solid);">📄</span>
+                            <span style="font-weight: 500; word-break: break-all;">{{ image[1] }}</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                            {% if session.get('role') == 'admin' %}
+                            <a href="/analyze_image/{{ claim_id }}/{{ image[0] }}" class="btn btn-sm btn-secondary">🔍
+                                Analyze Image</a>
+                            {% endif %}
+                            <a href="/download_image/{{ image[0] }}" class="btn btn-sm" download>📥 Download</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <style>
+                @keyframes spin {
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+            </style>
+            {% else %}
+            <div
+                style="padding: 32px; text-align: center; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border); border-radius: 12px; margin-top: 20px;">
+                <p style="color: var(--muted); margin: 0;">No images were submitted with this claim.</p>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</body>
+
+</html>

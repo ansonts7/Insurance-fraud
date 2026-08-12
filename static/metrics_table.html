@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Georgia:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+            font-family: 'Georgia', serif;
+            display: flex;
+            justify-content: center;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 1000px;
+            border: 1px solid black;
+        }
+        
+        th, td {
+            border: 1px solid black;
+            padding: 16px 12px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        th {
+            font-weight: bold;
+            font-size: 17px;
+        }
+        
+        td:first-child, th:first-child {
+            font-weight: bold;
+            width: 15%;
+        }
+        
+        td:nth-child(2), th:nth-child(2) {
+            width: 30%;
+        }
+        
+        td:nth-child(3), th:nth-child(3) {
+            width: 40%;
+            text-align: justify;
+        }
+        
+        td:last-child, th:last-child {
+            font-weight: bold;
+            width: 15%;
+            text-align: left;
+        }
+        
+        .equation {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <table>
+        <tr>
+            <th>Metric</th>
+            <th>Equations</th>
+            <th>Details Description</th>
+            <th>Percentage (%)</th>
+        </tr>
+        <tr>
+            <td>Accuracy</td>
+            <td class="equation">(TP + TN) / (TP + TN<br>+ FP + FN)</td>
+            <td>The ability of the classifier to<br>correctly classify the class label.</td>
+            <td>84%</td>
+        </tr>
+        <tr>
+            <td>Precision</td>
+            <td class="equation">TP / (TP + FP)</td>
+            <td>This measure indicates how many<br>predicted positive classes are<br>actually correct.</td>
+            <td>78%</td>
+        </tr>
+        <tr>
+            <td>Recall</td>
+            <td class="equation">TP / (TP + FN)</td>
+            <td>The metric indicates how many<br>positive samples were correctly<br>classified out of all positive classes.</td>
+            <td>82%</td>
+        </tr>
+        <tr>
+            <td>F1 &ndash; Score</td>
+            <td class="equation">2 &times; (Precision &times;<br>Recall) / (Precision +<br>Recall)</td>
+            <td>This metric provides a balance<br>between precision and <u>recall</u> for<br>evaluating the model performance.</td>
+            <td>80%</td>
+        </tr>
+    </table>
+
+</body>
+</html>

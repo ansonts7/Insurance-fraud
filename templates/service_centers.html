@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Service Center · Kerala</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .page-layout {
+            display: flex;
+            gap: 24px;
+            height: calc(100vh - 220px);
+            min-height: 540px;
+        }
+
+        .sidebar {
+            width: 340px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .tab-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 9px 10px;
+            background: rgba(15, 20, 35, 0.7);
+            border: 1.5px solid rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: rgba(99, 102, 241, 0.18);
+            border-color: rgba(99, 102, 241, 0.55);
+            color: var(--text);
+        }
+
+        #panelBrowse {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #panelDir {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* inputs */
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input,
+        .dir-select {
+            width: 100%;
+            padding: 11px 14px 11px 40px;
+            border-radius: 12px;
+            background: rgba(15, 20, 35, 0.7);
+            border: 1.5px solid rgba(99, 102, 241, 0.25);
+            color: var(--text);
+            font-size: 0.87rem;
+            font-family: var(--font-body);
+        }
+
+        .dir-select {
+            padding-left: 14px;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .dir-select option {
+            background: #12182a;
+        }
+
+        .search-box input:focus,
+        .dir-select:focus {
+            border-color: var(--accent-primary-solid);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            outline: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+
+        .field-label {
+            font-size: 0.73rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 2px;
+        }
+
+        /* buttons */
+        .primary-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 11px 16px;
+            font-weight: 600;
+            font-size: 0.87rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 18px rgba(99, 102, 241, 0.3);
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(99, 102, 241, 0.5);
+        }
+
+        .primary-btn:active {
+            transform: translateY(0);
+        }
+
+        .primary-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-row .primary-btn {
+            flex: 1;
+        }
+
+        .danger-btn {
+            width: 100%;
+            background: transparent;
+            border: 1.5px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 0.84rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.25s;
+        }
+
+        .danger-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.7);
+        }
+
+        .gmaps-btn {
+            width: 100%;
+            background: transparent;
+            border: 1.5px solid rgba(16, 185, 129, 0.4);
+            color: #6ee7b7;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 0.84rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.25s;
+            text-decoration: none;
+        }
+
+        .gmaps-btn:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: #6ee7b7;
+            border-color: rgba(16, 185, 129, 0.7);
+        }
+
+        .gmaps-btn.show {
+            display: flex;
+        }
+
+        /* info boxes */
+        .info-box {
+            border-radius: 12px;
+            padding: 10px 13px;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            display: none;
+        }
+
+        .info-box.visible {
+            display: block;
+        }
+
+        .info-box.from-box {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.28);
+            color: #fde68a;
+        }
+
+        .info-box.from-box strong {
+            color: #f59e0b;
+        }
+
+        .info-box.dest-box {
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.28);
+            color: #ddd6fe;
+        }
+
+        .info-box.dest-box strong {
+            color: #a78bfa;
+        }
+
+        .hint-box {
+            background: rgba(99, 102, 241, 0.06);
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            border-radius: 12px;
+            padding: 11px 13px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .hint-box strong {
+            color: var(--text-secondary);
+        }
+
+        /* route summary */
+        .route-summary {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.07));
+            border: 1px solid rgba(99, 102, 241, 0.28);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: none;
+            gap: 0;
+            flex-direction: column;
+        }
+
+        .route-summary.visible {
+            display: flex;
+        }
+
+        .rs-row {
+            display: flex;
+            gap: 0;
+        }
+
+        .rs-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .rs-label {
+            font-size: 0.68rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .rs-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 2px;
+        }
+
+        /* steps */
+        .steps-wrap {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            padding-right: 4px;
+        }
+
+        .steps-wrap::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .steps-wrap::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 3px;
+        }
+
+        .step-item {
+            background: rgba(20, 25, 40, 0.7);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 0.78rem;
+            display: flex;
+            gap: 9px;
+            align-items: flex-start;
+        }
+
+        .step-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .step-dist {
+            color: var(--muted);
+            font-size: 0.71rem;
+            margin-top: 2px;
+        }
+
+        /* nearest card */
+        .nearest-card {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 14px;
+            padding: 14px 15px;
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+            animation: fadeIn 0.4s ease;
+        }
+
+        .nearest-card.visible {
+            display: flex;
+        }
+
+        .nc-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 6px;
+            padding: 3px 9px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            width: fit-content;
+            margin-bottom: 2px;
+        }
+
+        .nc-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        .nc-city {
+            font-size: 0.8rem;
+            color: #6ee7b7;
+        }
+
+        .nc-addr {
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .nc-phone {
+            font-size: 0.78rem;
+            color: #38bdf8;
+        }
+
+        .nc-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .nc-dist {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .nc-dir-btn {
+            margin-top: 6px;
+            width: 100%;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #6ee7b7;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .nc-dir-btn:hover {
+            background: rgba(16, 185, 129, 0.25);
+        }
+
+        /* center list */
+        .center-count {
+            font-size: 0.77rem;
+            color: var(--muted);
+            padding-left: 2px;
+        }
+
+        .center-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            padding-right: 4px;
+        }
+
+        .center-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .center-list::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 3px;
+        }
+
+        .center-item {
+            background: rgba(20, 25, 40, 0.7);
+            border: 1px solid rgba(99, 102, 241, 0.13);
+            border-radius: 13px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: all 0.22s;
+            position: relative;
+        }
+
+        .center-item:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.09);
+            transform: translateX(3px);
+        }
+
+        .center-item.nearest {
+            border-color: rgba(16, 185, 129, 0.45);
+            background: rgba(16, 185, 129, 0.07);
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.12);
+        }
+
+        .center-item.nearest::after {
+            content: "📍 Nearest";
+            position: absolute;
+            top: 9px;
+            right: 11px;
+            font-size: 0.67rem;
+            font-weight: 700;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 5px;
+            padding: 2px 7px;
+        }
+
+        .center-name {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--text);
+            margin-bottom: 3px;
+        }
+
+        .center-city {
+            font-size: 0.77rem;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+
+        .center-meta {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .type-badge {
+            font-size: 0.69rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 5px;
+        }
+
+        .type-badge.authorized {
+            color: #a78bfa;
+            background: rgba(139, 92, 246, 0.12);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .type-badge.multi {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.09);
+            border: 1px solid rgba(56, 189, 248, 0.27);
+        }
+
+        .dist-label {
+            font-size: 0.75rem;
+            color: var(--success);
+            font-weight: 500;
+            margin-left: auto;
+        }
+
+        /* dir button inside list card */
+        .dir-tiny-btn {
+            margin-top: 9px;
+            width: 100%;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #c4b5fd;
+            border-radius: 9px;
+            padding: 7px 10px;
+            font-size: 0.77rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .dir-tiny-btn:hover {
+            background: rgba(99, 102, 241, 0.22);
+            border-color: rgba(99, 102, 241, 0.55);
+        }
+
+        /* map */
+        .map-wrap {
+            flex: 1;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .leaflet-container {
+            background: #0d1120;
+            font-family: var(--font-body);
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(18, 24, 40, 0.96);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 14px;
+            backdrop-filter: blur(12px);
+            color: #f8fafc;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(18, 24, 40, 0.96);
+        }
+
+        .leaflet-popup-content {
+            margin: 14px 18px;
+            min-width: 200px;
+        }
+
+        .popup-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+            color: #a78bfa;
+        }
+
+        .popup-addr {
+            font-size: 0.82rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .popup-phone {
+            font-size: 0.82rem;
+            color: #38bdf8;
+        }
+
+        .popup-type {
+            font-size: 0.77rem;
+            color: #10b981;
+            margin-top: 4px;
+        }
+
+        .popup-dir-btn {
+            margin-top: 10px;
+            width: 100%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .popup-dir-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        #mapHint {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(18, 24, 40, 0.9);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 10px;
+            padding: 7px 16px;
+            font-size: 0.79rem;
+            color: #f8fafc;
+            font-weight: 500;
+            z-index: 800;
+            display: none;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        #mapHint.show {
+            display: block;
+        }
+
+        /* spinner */
+        .spinner {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* markers */
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            70% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+
+        .pulse-marker {
+            width: 16px;
+            height: 16px;
+            background: #10b981;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            animation: pulse-ring 1.8s ease-out infinite;
+        }
+
+        .from-marker {
+            width: 20px;
+            height: 20px;
+            background: #f59e0b;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+        }
+
+        /* toast */
+        #toast {
+            position: fixed;
+            bottom: 26px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: rgba(18, 24, 40, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #f8fafc;
+            padding: 11px 22px;
+            border-radius: 11px;
+            font-size: 0.87rem;
+            font-weight: 500;
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div>
+                <p class="eyebrow">Vehicle Repair</p>
+                <h1 class="title">Service Centers – Kerala</h1>
+                <p class="subtitle">Browse all centers or get directions to any specific one.</p>
+            </div>
+            <div class="action-row">
+                <a class="btn btn-secondary" href="/user">← Dashboard</a>
+                <a class="btn btn-secondary" href="/my_claims">My Claims</a>
+                <a class="btn btn-secondary" href="/logout">Logout</a>
+            </div>
+        </header>
+
+        <div class="page-layout">
+            <!-- ── Sidebar ── -->
+            <div class="sidebar">
+                <div class="tab-row">
+                    <button class="tab-btn active" id="tabBrowse" onclick="switchTab('browse')">🗺️ Browse</button>
+                    <button class="tab-btn" id="tabDir" onclick="switchTab('dir')">🧭 Directions</button>
+                </div>
+
+                <!-- ===== BROWSE PANEL ===== -->
+                <div id="panelBrowse">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search name or city…"
+                            oninput="filterCenters()">
+                    </div>
+                    <button class="primary-btn" onclick="locateMe()">📍 Use My Location</button>
+
+                    <!-- ── Nearest center card (shown after GPS) ── -->
+                    <div class="nearest-card" id="nearestCard">
+                        <div class="nc-badge">📍 Nearest Service Center</div>
+                        <div class="nc-name" id="ncName">—</div>
+                        <div class="nc-city" id="ncCity"></div>
+                        <div class="nc-addr" id="ncAddr"></div>
+                        <div class="nc-phone" id="ncPhone"></div>
+                        <div class="nc-meta">
+                            <span class="type-badge" id="ncType"></span>
+                            <span class="nc-dist" id="ncDist"></span>
+                        </div>
+                        <button class="nc-dir-btn" id="ncDirBtn">🧭 Get Directions</button>
+                    </div>
+
+                    <div class="center-count" id="centerCount">Showing 30 centers</div>
+                    <div class="center-list" id="centerList"></div>
+                </div>
+
+                <!-- ===== DIRECTIONS PANEL ===== -->
+                <div id="panelDir">
+                    <div class="hint-box">
+                        <strong>Pick start &amp; destination, then get road directions.</strong><br>
+                        Start: type a place, use GPS, or click the map.<br>
+                        Destination: choose any service center from the list.
+                    </div>
+
+                    <!-- START -->
+                    <div>
+                        <div class="field-label">🟡 Starting point</div>
+                        <div class="search-box" style="margin-bottom:8px">
+                            <span class="search-icon">📍</span>
+                            <input type="text" id="fromSearch" placeholder="Type a location in Kerala…"
+                                onkeydown="if(event.key==='Enter') geocodeFrom()">
+                        </div>
+                        <div class="btn-row">
+                            <button class="primary-btn" onclick="geocodeFrom()">🔎 Search</button>
+                            <button class="primary-btn" onclick="locateMeForDir()">📡 GPS</button>
+                        </div>
+                    </div>
+
+                    <!-- DESTINATION -->
+                    <div>
+                        <div class="field-label">🔵 Destination service center</div>
+                        <select class="dir-select" id="destSelect" onchange="onDestChange()">
+                            <option value="nearest">⭐ Nearest to start point (auto)</option>
+                        </select>
+                    </div>
+
+                    <!-- STATUS boxes -->
+                    <div class="info-box from-box" id="fromInfo">🟡 From: <strong id="fromLabel">—</strong></div>
+                    <div class="info-box dest-box" id="destInfo">🔵 To: <strong id="destLabel">—</strong></div>
+
+                    <!-- Route summary -->
+                    <div class="route-summary" id="routeSummary">
+                        <div class="rs-row">
+                            <div class="rs-item">
+                                <div class="rs-label">Road dist.</div>
+                                <div class="rs-value" id="rsDist">—</div>
+                            </div>
+                            <div class="rs-item">
+                                <div class="rs-label">Est. time</div>
+                                <div class="rs-value" id="rsTime">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="primary-btn" id="getDirectionsBtn" onclick="getDirections()" disabled>
+                        🧭 Get Directions
+                    </button>
+                    <button class="danger-btn" id="clearRouteBtn" onclick="clearRoute()" style="display:none">
+                        ✖ Clear Route
+                    </button>
+                    <a class="gmaps-btn" id="gmapsBtn" target="_blank" rel="noopener">
+                        🗺️ Open in Google Maps
+                    </a>
+
+                    <div class="steps-wrap" id="stepsWrap"></div>
+                </div>
+            </div>
+
+            <!-- ── Map ── -->
+            <div class="map-wrap">
+                <div id="mapHint">🖱️ Click anywhere on the map to set your start point</div>
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+    <div id="toast"></div>
+
+    <script>
+        // ============================================================
+        //  Data
+        // ============================================================
+        const CENTERS = [
+            { name: "Popular Vehicles & Services", city: "Thiruvananthapuram", addr: "NH Bypass, Pappanamcode, TVM", phone: "0471-2455555", type: "authorized", lat: 8.4855, lng: 76.9492 },
+            { name: "KTDC Auto Workshop", city: "Thiruvananthapuram", addr: "Vikas Bhavan Rd, TVM", phone: "0471-2725667", type: "multi", lat: 8.4995, lng: 76.9511 },
+            { name: "Rajadhani Auto Works", city: "Thiruvananthapuram", addr: "Karamana, TVM", phone: "0471-2340212", type: "multi", lat: 8.4778, lng: 76.9388 },
+            { name: "Sai Motors", city: "Thiruvananthapuram", addr: "Attingal, TVM", phone: "0470-2623400", type: "authorized", lat: 8.6940, lng: 76.8180 },
+            { name: "Popular Motors Kollam", city: "Kollam", addr: "Chinnakkada, Kollam", phone: "0474-2765000", type: "authorized", lat: 8.8822, lng: 76.5942 },
+            { name: "Swift Auto Care", city: "Kollam", addr: "Kundara, Kollam", phone: "0474-2522100", type: "multi", lat: 8.9805, lng: 76.6953 },
+            { name: "Chelanat Auto Workshop", city: "Alappuzha", addr: "KSRTC Jn, Alappuzha", phone: "0477-2253000", type: "multi", lat: 9.4981, lng: 76.3388 },
+            { name: "Malabar Auto Garage", city: "Alappuzha", addr: "Cherthala, Alappuzha", phone: "0478-2810600", type: "multi", lat: 9.6840, lng: 76.3300 },
+            { name: "KGE Auto Services", city: "Kottayam", addr: "Collectorate Jn, Kottayam", phone: "0481-2560444", type: "authorized", lat: 9.5916, lng: 76.5222 },
+            { name: "Popular Hyundai Kottayam", city: "Kottayam", addr: "Nagambadam, Kottayam", phone: "0481-2302020", type: "authorized", lat: 9.5744, lng: 76.5268 },
+            { name: "Popular Vehicles Kochi", city: "Kochi", addr: "NH 66, Vytilla, Kochi", phone: "0484-6690000", type: "authorized", lat: 9.9658, lng: 76.2985 },
+            { name: "Indus Motors Kochi", city: "Kochi", addr: "Edappally, Kochi", phone: "0484-2349000", type: "authorized", lat: 10.0268, lng: 76.3087 },
+            { name: "EVM Honda Kochi", city: "Kochi", addr: "NH Bypass, Kalamassery", phone: "0484-2541200", type: "authorized", lat: 10.0573, lng: 76.3121 },
+            { name: "Cochin Auto Works", city: "Kochi", addr: "Kaloor, Kochi", phone: "0484-2400900", type: "multi", lat: 9.9937, lng: 76.2936 },
+            { name: "Capitol Motors", city: "Kochi", addr: "Marine Drive, Kochi", phone: "0484-2220066", type: "multi", lat: 9.9816, lng: 76.2727 },
+            { name: "Popular Motors Thrissur", city: "Thrissur", addr: "Shoranur Road, Thrissur", phone: "0487-2380900", type: "authorized", lat: 10.5276, lng: 76.2114 },
+            { name: "Sree Auto Works Thrissur", city: "Thrissur", addr: "Ollur, Thrissur", phone: "0487-2350020", type: "multi", lat: 10.5135, lng: 76.1780 },
+            { name: "TVS Thrissur", city: "Thrissur", addr: "MG Road, Thrissur", phone: "0487-2424000", type: "authorized", lat: 10.5262, lng: 76.2179 },
+            { name: "Modern Auto Workshop", city: "Palakkad", addr: "Chandranagar, Palakkad", phone: "0491-2555100", type: "multi", lat: 10.7867, lng: 76.6548 },
+            { name: "Sree Durga Motors", city: "Palakkad", addr: "Olavakkode, Palakkad", phone: "0491-2500040", type: "multi", lat: 10.7734, lng: 76.6531 },
+            { name: "Popular Cars Malappuram", city: "Malappuram", addr: "Palachode, Malappuram", phone: "0483-2734000", type: "authorized", lat: 11.0510, lng: 76.0711 },
+            { name: "Bilal Auto Care", city: "Malappuram", addr: "Perinthalmanna, Malappuram", phone: "04933-222444", type: "multi", lat: 10.9773, lng: 76.2267 },
+            { name: "EVM Kozhikode", city: "Kozhikode", addr: "Pavangad, Kozhikode", phone: "0495-2380888", type: "authorized", lat: 11.2690, lng: 75.7963 },
+            { name: "Calicut Motor Works", city: "Kozhikode", addr: "Palayam, Kozhikode", phone: "0495-2766900", type: "multi", lat: 11.2588, lng: 75.7807 },
+            { name: "National Auto Service", city: "Kozhikode", addr: "Feroke, Kozhikode", phone: "0495-2482300", type: "multi", lat: 11.2210, lng: 75.8360 },
+            { name: "Green Auto Workshop", city: "Wayanad", addr: "Kalpetta, Wayanad", phone: "04936-202020", type: "multi", lat: 11.6073, lng: 76.0832 },
+            { name: "Popular Kannur", city: "Kannur", addr: "Fort Road, Kannur", phone: "0497-2706000", type: "authorized", lat: 11.8745, lng: 75.3704 },
+            { name: "North Auto Works", city: "Kannur", addr: "Thavakkara, Kannur", phone: "0497-2765000", type: "multi", lat: 11.8700, lng: 75.3620 },
+            { name: "Kasaragod Auto Care", city: "Kasaragod", addr: "Super Market Rd, Kasaragod", phone: "04994-220240", type: "multi", lat: 12.4996, lng: 74.9869 },
+            { name: "Hill Auto Service", city: "Idukki", addr: "Painavu, Idukki", phone: "04862-232020", type: "multi", lat: 9.8499, lng: 76.9710 },
+        ];
+
+        // ============================================================
+        //  Populate destination dropdown
+        // ============================================================
+        (function populateDestSelect() {
+            const sel = document.getElementById('destSelect');
+            CENTERS.forEach((c, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${c.name} — ${c.city}`;
+                sel.appendChild(opt);
+            });
+        })();
+
+        // ============================================================
+        //  Map
+        // ============================================================
+        const map = L.map('map', { center: [10.1632, 76.6413], zoom: 8 });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a>', maxZoom: 19
+        }).addTo(map);
+
+        // ============================================================
+        //  Icons
+        // ============================================================
+        function makeIcon(type, highlight = false) {
+            const color = highlight ? '#10b981' : (type === 'authorized' ? '#a78bfa' : '#38bdf8');
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
+    <path d="M16 0C9.4 0 4 5.4 4 12c0 8.5 12 28 12 28s12-19.5 12-28C28 5.4 22.6 0 16 0z" fill="${color}" opacity="0.92"/>
+    <circle cx="16" cy="12" r="7" fill="#0d1120"/>
+    <text x="16" y="16.5" text-anchor="middle" font-size="9" fill="${color}" font-family="sans-serif">🔧</text>
+  </svg>`;
+            return L.divIcon({ html: svg, className: '', iconSize: [32, 40], iconAnchor: [16, 40], popupAnchor: [0, -40] });
+        }
+        const fromDivIcon = L.divIcon({ html: '<div class="from-marker"></div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] });
+        const userDivIcon = L.divIcon({ html: '<div class="pulse-marker"></div>', className: '', iconSize: [16, 16], iconAnchor: [8, 8] });
+
+        // ============================================================
+        //  State
+        // ============================================================
+        let markers = [], userMarker = null, fromMarker = null;
+        let userLatLng = null, fromLatLng = null;
+        let nearestIdx = -1;       // nearest to start (auto)
+        let selectedDestIdx = -1;  // -1 = use nearest
+        let routeLayers = [];
+        let clickMode = false;
+
+        // ============================================================
+        //  Helpers
+        // ============================================================
+        function haversine(lat1, lng1, lat2, lng2) {
+            const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+        function findNearest(lat, lng) {
+            let minD = Infinity, idx = -1;
+            CENTERS.forEach((c, i) => { const d = haversine(lat, lng, c.lat, c.lng); if (d < minD) { minD = d; idx = i; } });
+            return { idx, dist: minD };
+        }
+        function getDestIdx() {
+            // If user picked a specific center, use it; otherwise auto-nearest
+            return selectedDestIdx >= 0 ? selectedDestIdx : (fromLatLng ? findNearest(fromLatLng.lat, fromLatLng.lng).idx : -1);
+        }
+
+        // ============================================================
+        //  Destination dropdown change
+        // ============================================================
+        function onDestChange() {
+            const val = document.getElementById('destSelect').value;
+            selectedDestIdx = val === 'nearest' ? -1 : parseInt(val);
+            refreshDestLabel();
+            if (fromLatLng) document.getElementById('getDirectionsBtn').disabled = false;
+        }
+
+        function refreshDestLabel() {
+            const idx = getDestIdx();
+            if (idx < 0) { document.getElementById('destInfo').classList.remove('visible'); return; }
+            const c = CENTERS[idx];
+            const dist = fromLatLng ? haversine(fromLatLng.lat, fromLatLng.lng, c.lat, c.lng) : null;
+            document.getElementById('destInfo').classList.add('visible');
+            document.getElementById('destLabel').textContent = `${c.name}, ${c.city}${dist !== null ? ' (' + dist.toFixed(1) + ' km straight-line)' : ''}`;
+        }
+
+        // ============================================================
+        //  Markers & sidebar
+        // ============================================================
+        function buildMarkers() {
+            markers.forEach(m => m.marker.remove()); markers = [];
+            const destIdx = getDestIdx();
+            CENTERS.forEach((c, i) => {
+                const highlight = i === destIdx;
+                const m = L.marker([c.lat, c.lng], { icon: makeIcon(c.type, highlight) });
+                m.bindPopup(`
+      <div class="popup-name">${c.name}</div>
+      <div class="popup-addr">📍 ${c.addr}</div>
+      <div class="popup-phone">📞 ${c.phone}</div>
+      <div class="popup-type">${c.type === 'authorized' ? '✅ Authorized Dealer' : '🔵 Multi-Brand Workshop'}</div>
+      ${highlight ? '<div style="color:#10b981;font-weight:600;margin-top:5px;font-size:0.79rem;">⭐ Selected destination</div>' : ''}
+      <button class="popup-dir-btn" onclick="directToCenter(${i})">🧭 Get Directions Here</button>
+    `);
+                m.addTo(map);
+                markers.push({ marker: m, data: c, index: i });
+            });
+        }
+
+        function buildSidebar(filtered = null) {
+            const list = document.getElementById('centerList');
+            const items = filtered !== null ? filtered : CENTERS.map((c, i) => ({ c, i }));
+            document.getElementById('centerCount').textContent = `Showing ${items.length} center${items.length !== 1 ? 's' : ''}`;
+            list.innerHTML = '';
+            const destIdx = getDestIdx();
+            items.forEach(({ c, i }) => {
+                const dist = userLatLng ? haversine(userLatLng.lat, userLatLng.lng, c.lat, c.lng) : null;
+                const div = document.createElement('div');
+                div.className = 'center-item' + (i === destIdx ? ' nearest' : '');
+                div.innerHTML = `
+      <div class="center-name">${c.name}</div>
+      <div class="center-city">📍 ${c.city}</div>
+      <div class="center-meta">
+        <span class="type-badge ${c.type === 'authorized' ? 'authorized' : 'multi'}">${c.type === 'authorized' ? 'Authorized' : 'Multi-Brand'}</span>
+        ${dist !== null ? `<span class="dist-label">${dist.toFixed(1)} km</span>` : ''}
+      </div>
+      <button class="dir-tiny-btn" onclick="event.stopPropagation();directToCenter(${i})">🧭 Directions to this center</button>`;
+                div.onclick = () => { map.flyTo([c.lat, c.lng], 15, { duration: 1.1 }); markers.find(m => m.index === i)?.marker.openPopup(); };
+                list.appendChild(div);
+            });
+        }
+
+        function filterCenters() {
+            const q = document.getElementById('searchInput').value.toLowerCase().trim();
+            if (!q) { buildMarkers(); buildSidebar(); markers.forEach(({ marker }) => marker.addTo(map)); return; }
+            const filtered = CENTERS.map((c, i) => ({ c, i })).filter(({ c }) => c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q));
+            markers.forEach(({ marker, index }) => { filtered.some(f => f.i === index) ? marker.addTo(map) : marker.remove(); });
+            buildSidebar(filtered);
+        }
+
+        // ============================================================
+        //  Tabs
+        // ============================================================
+        function switchTab(tab) {
+            const isBrowse = tab === 'browse';
+            document.getElementById('tabBrowse').classList.toggle('active', isBrowse);
+            document.getElementById('tabDir').classList.toggle('active', !isBrowse);
+            document.getElementById('panelBrowse').style.display = isBrowse ? 'flex' : 'none';
+            document.getElementById('panelDir').style.display = isBrowse ? 'none' : 'flex';
+            clickMode = !isBrowse;
+            document.getElementById('mapHint').classList.toggle('show', clickMode);
+        }
+
+        // ============================================================
+        //  Map click → set FROM
+        // ============================================================
+        map.on('click', function (e) {
+            if (!clickMode) return;
+            setFromLatLng(e.latlng.lat, e.latlng.lng, `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+        });
+
+        function setFromLatLng(lat, lng, label) {
+            fromLatLng = { lat, lng };
+            if (fromMarker) fromMarker.remove();
+            fromMarker = L.marker([lat, lng], { icon: fromDivIcon, draggable: true })
+                .addTo(map).bindPopup('<b>🟡 Start point</b><br><small>Drag to adjust</small>').openPopup();
+            fromMarker.on('dragend', function (ev) {
+                const ll = ev.target.getLatLng();
+                setFromLatLng(ll.lat, ll.lng, `${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)}`);
+            });
+            document.getElementById('fromInfo').classList.add('visible');
+            document.getElementById('fromLabel').textContent = label;
+            document.getElementById('getDirectionsBtn').disabled = false;
+            refreshDestLabel();
+            buildMarkers(); buildSidebar();
+        }
+
+        // ============================================================
+        //  GPS
+        // ============================================================
+        function locateMe() {
+            if (!navigator.geolocation) { showToast('⚠️ Geolocation not supported.'); return; }
+            showToast('📡 Getting your location…');
+            navigator.geolocation.getCurrentPosition(pos => {
+                userLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                if (userMarker) userMarker.remove();
+                userMarker = L.marker([userLatLng.lat, userLatLng.lng], { icon: userDivIcon })
+                    .addTo(map).bindPopup('<b>📍 You are here</b>').openPopup();
+                const { idx, dist } = findNearest(userLatLng.lat, userLatLng.lng);
+                nearestIdx = idx;
+                map.flyTo([userLatLng.lat, userLatLng.lng], 11, { duration: 1.4 });
+                buildMarkers(); buildSidebar();
+                showNearestCard(idx, dist);
+                showToast(`✅ Nearest: ${CENTERS[idx].name} (${dist.toFixed(1)} km)`);
+            }, () => showToast('⚠️ Location access denied.'));
+        }
+
+        function showNearestCard(idx, dist) {
+            const c = CENTERS[idx];
+            document.getElementById('ncName').textContent = c.name;
+            document.getElementById('ncCity').textContent = '📍 ' + c.city;
+            document.getElementById('ncAddr').textContent = c.addr;
+            document.getElementById('ncPhone').textContent = '📞 ' + c.phone;
+            const typeEl = document.getElementById('ncType');
+            typeEl.textContent = c.type === 'authorized' ? 'Authorized Dealer' : 'Multi-Brand Workshop';
+            typeEl.className = 'type-badge ' + (c.type === 'authorized' ? 'authorized' : 'multi');
+            document.getElementById('ncDist').textContent = dist.toFixed(1) + ' km away';
+            document.getElementById('ncDirBtn').onclick = () => directToCenter(idx);
+            document.getElementById('nearestCard').classList.add('visible');
+        }
+
+        function locateMeForDir() {
+            if (!navigator.geolocation) { showToast('⚠️ Geolocation not supported.'); return; }
+            showToast('📡 Getting your location…');
+            navigator.geolocation.getCurrentPosition(pos => {
+                setFromLatLng(pos.coords.latitude, pos.coords.longitude, 'Your GPS location');
+                map.flyTo([pos.coords.latitude, pos.coords.longitude], 13, { duration: 1.2 });
+                showToast('✅ Location set. Hit "Get Directions".');
+            }, () => showToast('⚠️ Location access denied.'));
+        }
+
+        // ============================================================
+        //  Geocoder
+        // ============================================================
+        async function geocodeFrom() {
+            const q = (document.getElementById('fromSearch').value || '').trim();
+            if (!q) { showToast('⚠️ Type a location first.'); return; }
+            showToast('🔍 Searching…');
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Kerala, India')}&format=json&limit=1&accept-language=en`);
+                const data = await res.json();
+                if (!data.length) { showToast('❌ Location not found. Try a different name.'); return; }
+                const { lat, lon, display_name } = data[0];
+                setFromLatLng(parseFloat(lat), parseFloat(lon), display_name.split(',').slice(0, 2).join(','));
+                map.flyTo([lat, lon], 13, { duration: 1.2 });
+                showToast('✅ Found. Click "Get Directions".');
+            } catch (e) { showToast('⚠️ Search failed. Check internet connection.'); }
+        }
+
+        // ============================================================
+        //  OSRM direct API routing
+        // ============================================================
+        async function getDirections() {
+            if (!fromLatLng) { showToast('⚠️ Set a start point first.'); return; }
+            clearRoute();
+
+            const destIdx = getDestIdx();
+            if (destIdx < 0) { showToast('⚠️ No destination found.'); return; }
+            const dest = CENTERS[destIdx];
+
+            const btn = document.getElementById('getDirectionsBtn');
+            btn.innerHTML = '<span class="spinner"></span> Calculating…';
+            btn.disabled = true;
+
+            // OSRM uses lon,lat order
+            const url = `https://router.project-osrm.org/route/v1/driving/` +
+                `${fromLatLng.lng},${fromLatLng.lat};${dest.lng},${dest.lat}` +
+                `?overview=full&geometries=geojson&steps=true`;
+
+            try {
+                const controller = new AbortController();
+                const tid = setTimeout(() => controller.abort(), 12000);
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(tid);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (!data.routes || !data.routes.length) throw new Error('No routes');
+
+                const route = data.routes[0];
+
+                // Draw double polyline (glow + sharp)
+                const glow = L.geoJSON(route.geometry, { style: { color: 'rgba(99,102,241,0.2)', weight: 12, lineCap: 'round', lineJoin: 'round' } }).addTo(map);
+                const line = L.geoJSON(route.geometry, { style: { color: '#a78bfa', weight: 4.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' } }).addTo(map);
+                routeLayers.push(glow, line);
+
+                // Fit map
+                const latlngs = route.geometry.coordinates.map(c => [c[1], c[0]]);
+                map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50] });
+
+                // Summary
+                const distKm = (route.distance / 1000).toFixed(1);
+                const mins = Math.round(route.duration / 60);
+                const timeStr = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} min`;
+                document.getElementById('rsDist').textContent = distKm + ' km';
+                document.getElementById('rsTime').textContent = timeStr;
+                document.getElementById('routeSummary').classList.add('visible');
+                document.getElementById('clearRouteBtn').style.display = 'flex';
+
+                // Google Maps fallback link
+                setGMapsLink(fromLatLng.lat, fromLatLng.lng, dest.lat, dest.lng);
+
+                // Steps
+                const stepsEl = document.getElementById('stepsWrap');
+                stepsEl.innerHTML = '';
+                const iconMap = {
+                    depart: '🟡', arrive: '🏁', roundabout: '🔄', rotary: '🔄', merge: '🔀', 'on ramp': '⬆️', 'off ramp': '↘️', fork: '🔀',
+                    turn: { left: '⬅️', right: '➡️', 'slight left': '↖️', 'slight right': '↗️', 'sharp left': '↙️', 'sharp right': '↘️', uturn: '🔄', straight: '⬆️' }
+                };
+
+                route.legs[0].steps.forEach(step => {
+                    const mt = step.maneuver.type, mm = step.maneuver.modifier || 'straight';
+                    let icon = '🔹';
+                    if (iconMap[mt] && typeof iconMap[mt] === 'object') icon = iconMap[mt][mm] || '⬆️';
+                    else if (typeof iconMap[mt] === 'string') icon = iconMap[mt];
+
+                    const d = step.distance >= 1000 ? (step.distance / 1000).toFixed(1) + ' km' : Math.round(step.distance) + 'm';
+                    const street = step.name ? ` on <em>${step.name}</em>` : '';
+                    const div = document.createElement('div');
+                    div.className = 'step-item';
+                    div.innerHTML = `<div class="step-icon">${icon}</div>
+        <div><div class="step-text">${mt}${mm && mm !== 'straight' ? ' ' + mm : ''}${street}</div>
+        <div class="step-dist">${d}</div></div>`;
+                    stepsEl.appendChild(div);
+                });
+
+                buildMarkers();
+                showToast(`🏁 Route ready · ${distKm} km · ${timeStr}`);
+
+            } catch (err) {
+                console.error('OSRM error', err);
+                showFallback(dest);
+            } finally {
+                btn.innerHTML = '🧭 Get Directions';
+                btn.disabled = false;
+            }
+        }
+
+        function showFallback(dest) {
+            const from = [fromLatLng.lat, fromLatLng.lng], to = [dest.lat, dest.lng];
+            const dash = L.polyline([from, to], { color: '#a78bfa', weight: 3, opacity: 0.7, dashArray: '10,8' }).addTo(map);
+            routeLayers.push(dash);
+            map.fitBounds(L.latLngBounds([from, to]), { padding: [60, 60] });
+            const dist = haversine(fromLatLng.lat, fromLatLng.lng, dest.lat, dest.lng).toFixed(1);
+            document.getElementById('rsDist').textContent = dist + ' km*';
+            document.getElementById('rsTime').textContent = '~est.';
+            document.getElementById('routeSummary').classList.add('visible');
+            document.getElementById('clearRouteBtn').style.display = 'flex';
+            document.getElementById('stepsWrap').innerHTML = `
+    <div class="step-item"><div class="step-icon">⚠️</div>
+      <div><div class="step-text">Road routing temporarily unavailable. Showing straight-line direction. *Distance is approximate (straight line).</div></div></div>
+    <div class="step-item"><div class="step-icon">🗺️</div>
+      <div><div class="step-text">Use <strong>Open in Google Maps</strong> below for full road navigation.</div></div></div>`;
+            setGMapsLink(fromLatLng.lat, fromLatLng.lng, dest.lat, dest.lng);
+            showToast('⚠️ Routing unavailable. Showing straight-line + Google Maps link.');
+        }
+
+        function setGMapsLink(fLat, fLng, tLat, tLng) {
+            const btn = document.getElementById('gmapsBtn');
+            btn.href = `https://www.google.com/maps/dir/${fLat},${fLng}/${tLat},${tLng}`;
+            btn.classList.add('show');
+        }
+
+        function clearRoute() {
+            routeLayers.forEach(l => { try { map.removeLayer(l); } catch (e) { } });
+            routeLayers = [];
+            document.getElementById('routeSummary').classList.remove('visible');
+            document.getElementById('clearRouteBtn').style.display = 'none';
+            document.getElementById('gmapsBtn').classList.remove('show');
+            document.getElementById('stepsWrap').innerHTML = '';
+            buildMarkers();
+        }
+
+        // ============================================================
+        //  "Get Directions Here" — from popup or sidebar button
+        // ============================================================
+        function directToCenter(idx) {
+            map.closePopup();
+            switchTab('dir');
+            selectedDestIdx = idx;
+            // Sync dropdown
+            document.getElementById('destSelect').value = idx;
+            refreshDestLabel();
+            buildMarkers();
+            if (fromLatLng) { getDirections(); }
+            else showToast('📍 Now set a start point by clicking on the map, searching, or using GPS.');
+        }
+
+        // ============================================================
+        //  Toast
+        // ============================================================
+        let toastTimer;
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg; el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        // ============================================================
+        //  Init
+        // ============================================================
+        buildMarkers();
+        buildSidebar();
+    </script>
+</body>
+
+</html>
