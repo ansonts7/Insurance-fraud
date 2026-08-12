@@ -23,8 +23,8 @@ env/
 # === Training Data ===
 data/
 
-# === Large ML Models (excluded - too large for GitHub) ===
-models/
+# Model files are tracked via Git LFS (see .gitattributes)
+# models/ is included
 
 # === Databases ===
 *.db
